@@ -138,15 +138,24 @@ def normalize(records):
     return records
 
 
-def filter_and_log(records):
+def is_complete(record):
+    return all((record[name] for name in ['wave_direction', 'dominant_period', 'average_period']))
+
+
+def filter_and_log(records, retain_partial=False):
     filtered = []
     for n, record in enumerate(records):
         logger.debug(f'record {n + 1}: {record}')
         if 'reason' not in record:
-            filtered.append(record)
+            if retain_partial or is_complete(record):
+                filtered.append(record)
     logging.info(f'{len(filtered)} of {len(records)} records retained')
     return filtered
 
 
 def parse_normalize_filter(data):
-    return filter_and_log(normalize(parse_data(data)))
+    return filter_and_log(normalize(parse_data(data)), True)
+
+
+def parse_normalize_filter_complete(data):
+    return filter_and_log(normalize(parse_data(data)), False)
