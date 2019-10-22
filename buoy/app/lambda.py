@@ -40,7 +40,7 @@ def first_sentence(latest, time_pacific):
     wave_dir = int(latest["wave_direction"])
     return (f'At {hour_minute}, significant waves measured {round(wave_height, 1)} ft '
             f'at {int(latest["dominant_period"])} second intervals from {wave_dir} '
-            f'degrees {deg_to_compass(wave_dir)}. ')
+            f'deg {deg_to_compass(wave_dir)}. ')
 
 
 def second_sentence(db, latest, time_pacific):
@@ -109,7 +109,7 @@ def main(table, buoy, twitter_credentials=None):
 
     paragraph = write_paragraph(db, noaa_latest)
     logger.info(paragraph)
-    logger.info(len(paragraph))
+    logger.info(f'twitter update length is {len(paragraph)} characters')
 
     db.write_conditional(difference)
 
