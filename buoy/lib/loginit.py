@@ -13,6 +13,6 @@ def init_logger(prefix):
     log.setLevel(logging.INFO)
     log.addHandler(handler)
 
-    for name in ['batchput', 'dynamo', 'noaa']:
+    for name in ['buoy.lib.batchput', 'buoy.lib.dynamo', 'buoy.lib.noaa']:
         log = logging.getLogger(name)
         log.setLevel(logging.DEBUG)
