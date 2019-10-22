@@ -3,6 +3,7 @@ import logging
 import boto3
 import datetime
 import pytz
+import twitter
 from buoy.lib import dynamo
 from buoy.lib import noaa
 from buoy.lib import parse
@@ -24,11 +25,22 @@ def init_logging():
         format='[%(asctime)s] <%(threadName)s> %(levelname)s - %(message)s')
 
 
+def deg_to_compass(num):
+    """
+    https://stackoverflow.com/questions/7490660/converting-wind-direction-in-angles-to-text-words
+    """
+    val = int((num / 22.5) + .5)
+    arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    return arr[(val % 16)]
+
+
 def first_sentence(latest, time_pacific):
     hour_minute = time_pacific.strftime('%-I:%M %p')
     wave_height = latest['wave_height'] * FEET_PER_METER
-    return (f'At {hour_minute}, wave height was reported at {round(wave_height, 1)} ft '
-            f'with a period of {int(latest["dominant_period"])} seconds. ')
+    wave_dir = int(latest["wave_direction"])
+    return (f'At {hour_minute}, significant waves measured {round(wave_height, 1)} ft '
+            f'at {int(latest["dominant_period"])} second intervals from {wave_dir} '
+            f'degrees {deg_to_compass(wave_dir)}. ')
 
 
 def second_sentence(db, latest, time_pacific):
@@ -36,7 +48,7 @@ def second_sentence(db, latest, time_pacific):
     month_day_per = db.query_month_day_percentile(latest['month_day'], latest['wave_height'])[0]
     month = time_pacific.strftime('%B')
     month_day = time_pacific.strftime('%B %-d')
-    return (f'The wave height exceeds {month_per} percent of historical records for {month} '
+    return (f'The wave height exceeds {month_per} percent of historical observations for {month} '
             f'and {month_day_per} percent for {month_day}. ')
 
 
@@ -69,7 +81,7 @@ def write_paragraph(db, latest):
             f'{third_sentence(db, latest)}')
 
 
-def main(table, buoy):
+def main(table, buoy, twitter_credentials=None):
     init_logging()
     client = boto3.client('dynamodb')
     db = dynamo.Dynamo(client, table, buoy)
@@ -81,22 +93,42 @@ def main(table, buoy):
     noaa_latest = max(noaa_records, key=lambda r: r['time'])
     logger.info(f'fetched 5 days of buoy observations, latest record time is {noaa_latest["time"]}')
 
+    if 'dominant_period' not in noaa_latest:
+        logger.info('latest noaa record does not include dominant period, exiting')
+        return
+
+    if 'wave_direction' not in noaa_latest:
+        logger.info('latest noaa record does not include wave direction, exiting')
+        return
+
     difference = [record for record in noaa_records if record['time'] > db_latest['time']['S']]
 
     if not difference:
         logger.info(f'no new buoy observations, exiting')
         return
 
-    p = write_paragraph(db, noaa_latest)
-    logger.info(p)
+    paragraph = write_paragraph(db, noaa_latest)
+    logger.info(paragraph)
+    logger.info(len(paragraph))
 
     db.write_conditional(difference)
+
+    if twitter_credentials:
+        api = twitter.Api(**twitter_credentials)
+        status = api.PostUpdate(paragraph)
+        logger.info(f'posted twitter update with id {status.id} and create time {status.created_at}')
 
 
 def lambda_handler(event, context):
     table = os.environ['table']
     buoy = os.environ['buoy']
-    main(table, buoy)
+    twitter_credentials = {
+        'consumer_key': os.environ['twitter_consumer_key'],
+        'consumer_secret': os.environ['twitter_secret_key'],
+        'access_token_key': os.environ['twitter_access_token_key'],
+        'access_token_secret': os.environ['twitter_access_token_secret']
+    }
+    main(table, buoy, twitter_credentials)
 
 
 if __name__ == '__main__':
