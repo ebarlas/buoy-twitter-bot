@@ -3,6 +3,10 @@ import logging
 import boto3
 import datetime
 import pytz
+import twitter
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.dates import DateFormatter
 from buoy.lib import dynamo
 from buoy.lib import noaa
 from buoy.lib import parse
@@ -89,9 +93,6 @@ def noaa_record_pacific_time(record):
 
 
 def make_plot(records):
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    from matplotlib.dates import DateFormatter
     x = [noaa_record_pacific_time(rec) for rec in records]
     y = [round(rec['wave_height'] * FEET_PER_METER, 1) for rec in records]
     fig, ax = plt.subplots(figsize=(12, 5))
@@ -106,7 +107,6 @@ def make_plot(records):
 
 
 def tweet(message, records, twitter_credentials):
-    import twitter
     file_name = make_plot(records)
     with open(file_name, 'rb') as f:
         api = twitter.Api(**twitter_credentials)
