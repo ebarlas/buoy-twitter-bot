@@ -122,7 +122,7 @@ def main(table, buoy, twitter_credentials=None):
     db_latest = db.find_latest()
     logger.info(f'queried latest from dynamodb, time is {db_latest["time"]["S"]}')
 
-    noaa_records = parse.parse_normalize_filter(noaa.fetch_buoy_data_last5(buoy))
+    noaa_records = parse.parse_normalize_filter_complete(noaa.fetch_buoy_data_last5(buoy))
     noaa_latest = max(noaa_records, key=lambda r: r['time'])
     logger.info(f'fetched 5 days of buoy observations, latest record time is {noaa_latest["time"]}')
 
