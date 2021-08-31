@@ -93,3 +93,24 @@ The applications below [NOAA endpoints](#noaa-endpoints).
 * Multiple notations for missing or unfulfilled column (99.99, MM, etc)
 * Multiple orders (time ascending, time descending)
 * Multiple precisions ("real-time" has one-tenth precison, "historical" has one-hundredth)
+
+### Building
+
+Docker provides a convenient way to build a package tailored for the 
+AWS Lambda [Python runtime](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html).
+
+At the time of this writing, the `amazonlinux` image available on Docker Hub
+reflects the Lambda Python runtime.
+
+Prepare Docker container:
+```
+docker pull amazonlinux
+docker run --rm --name buoy -v "$PWD":/usr/src/awslambda -w /usr/src/awslambda -it amazonlinux bash
+```
+
+Run `build.sh` script:
+```
+yum install python3
+yum install zip
+./build.sh 
+```
