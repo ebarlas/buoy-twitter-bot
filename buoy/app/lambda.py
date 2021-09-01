@@ -43,26 +43,29 @@ def first_sentence(latest, pacific_time):
     hour_minute = pacific_time.strftime('%-I:%M %p')
     wave_height = latest['wave_height'] * FEET_PER_METER
     wave_dir = int(latest["wave_direction"])
-    return (f'At {hour_minute}, significant waves measured {round(wave_height, 1)} ft '
-            f'at {int(latest["dominant_period"])} second intervals from {wave_dir} '
+    return (f'At {hour_minute}, waves measured {round(wave_height, 1)} ft '
+            f'at {int(latest["dominant_period"])} sec intervals from {wave_dir} '
             f'deg {deg_to_compass(wave_dir)}. ')
 
 
 def second_sentence(db, latest, pacific_time):
-    month_per = db.query_month_percentile(latest['month'], latest['wave_height'])[0]
-    month_day_per = db.query_month_day_percentile(latest['month_day'], latest['wave_height'])[0]
-    month = pacific_time.strftime('%B')
-    month_day = pacific_time.strftime('%B %-d')
-    return (f'The wave height exceeds {month_per} percent of historical observations for {month} '
-            f'and {month_day_per} percent for {month_day}. ')
+    month_per = db.query_month_percentile(latest['month'], latest['wave_height'])
+    month_day_per = db.query_month_day_percentile(latest['month_day'], latest['wave_height'])
+    month = pacific_time.strftime('%b')
+    month_day = pacific_time.strftime('%b %-d')
+    return (f'The wave height meets or exceeds {month_per[0]} percent ({month_per[1]:,}/{month_per[2]:,}) of records for {month} '
+            f'and {month_day_per[0]} percent ({month_day_per[1]:,}/{month_day_per[2]:,}) for {month_day}. ')
 
 
 def third_sentence(db, latest):
     item = db.find_last_occurrence_of(latest['wave_height'])
-    pacific_time = table_item_pacific_time(item)
-    date = pacific_time.strftime('%-I:%M %p on %B %-d, %Y')
-    wave_height = float(item['waveheight']['N']) * FEET_PER_METER
-    return f'The last observation at that height was {round(wave_height, 1)} ft at {date}.'
+    if item:
+        pacific_time = table_item_pacific_time(item)
+        date = pacific_time.strftime('%-I:%M %p on %b %-d, %Y')
+        wave_height = float(item['waveheight']['N']) * FEET_PER_METER
+        return f'The last observation to exceed that height was {round(wave_height, 1)} ft at {date}.'
+    else:
+        return 'No prior observation exceeds that wave height.'
 
 
 def write_paragraph(db, latest):

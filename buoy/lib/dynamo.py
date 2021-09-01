@@ -153,7 +153,7 @@ class Dynamo:
 
     def find_last_occurrence_of(self, wave_height):
         """
-        Find the most recent occurrence of a wave height greater than or equal to the input wave height.
+        Find the most recent occurrence of a wave height greater than the input wave height.
         """
         index_item = dbquery.first_item(lambda k: self._query_index_page(wave_height, k))
         if not index_item:
@@ -212,7 +212,7 @@ class Dynamo:
         }
 
         if wave_height:
-            params['FilterExpression'] = 'waveheight >= :waveheight'
+            params['FilterExpression'] = 'waveheight > :waveheight'
             params['ExpressionAttributeValues'][':waveheight'] = {
                 'N': str(wave_height)
             }
@@ -229,7 +229,7 @@ class Dynamo:
         params = {
             'TableName': self.table,
             'ScanIndexForward': False,
-            'FilterExpression': 'waveheight >= :waveheight',
+            'FilterExpression': 'waveheight > :waveheight',
             'KeyConditionExpression': '#id = :id AND begins_with(#time, :yearmonth)',
             'ExpressionAttributeNames': {
                 '#id': 'id',
